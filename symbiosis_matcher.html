@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symbiosis Role Matcher</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a better look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Dark blue background */
+        }
+        .game-card {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .correct-answer {
+            background-color: #10b981; /* Emerald green */
+            color: white;
+            transform: scale(1.05);
+        }
+        .incorrect-answer {
+            background-color: #ef4444; /* Red */
+            color: white;
+        }
+        .glow {
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            from { box-shadow: 0 0 5px #f97316; }
+            to { box-shadow: 0 0 15px #f97316; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="game-card bg-gray-800 text-white p-6 rounded-xl w-full max-w-lg">
+        
+        <h1 class="text-3xl font-extrabold text-center mb-2 text-orange-400">
+            🦀 Symbiosis Role Matcher 🐙
+        </h1>
+        <p class="text-center text-sm mb-6 text-gray-400">Identify the correct role in this mutualistic relationship.</p>
+
+        <!-- Question Display Area -->
+        <div class="bg-gray-700 p-4 rounded-lg mb-6 shadow-inner message-box h-24 flex flex-col justify-center items-center">
+            <div id="question-icon" class="text-6xl mb-2"></div>
+            <p id="question-text" class="text-xl font-semibold text-gray-200 text-center"></p>
+        </div>
+
+        <!-- Role Options -->
+        <div id="options-container" class="space-y-3 mb-6">
+            <!-- Options will be populated here by JavaScript -->
+        </div>
+
+        <!-- Feedback and Reset -->
+        <div class="flex flex-col items-center">
+            <div id="feedback-message" class="text-center font-bold h-8 mb-4"></div>
+            
+            <button id="next-button" onclick="loadNextQuestion()" class="w-2/3 py-2 rounded-lg font-bold transition duration-300 transform shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-500/50 bg-gray-600 hover:bg-gray-500 hidden">
+                Next Question
+            </button>
+            <button id="start-button" onclick="loadNextQuestion()" class="w-2/3 py-3 rounded-lg font-bold transition duration-300 transform hover:scale-[1.02] shadow-lg focus:outline-none focus:ring-4 focus:ring-orange-500/50 glow" style="background-color: #f97316;">
+                Start Match Game
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game State and Data ---
+        let currentQuestionIndex = -1;
+        let score = 0;
+        let answeredCorrectly = false;
+
+        const quizData = [
+            {
+                icon: '🦀',
+                question: "Which primary benefit does the Hermit Crab receive from the Sea Anemone?",
+                options: [
+                    { text: "A supply of oxygenated water", isCorrect: false },
+                    { text: "A constant food source of detritus", isCorrect: false },
+                    { text: "Protection and camouflage (stinging cells)", isCorrect: true }
+                ]
+            },
+            {
+                icon: '🐙',
+                question: "Which primary benefit does the Sea Anemone receive from the Hermit Crab?",
+                options: [
+                    { text: "Access to new, varied feeding grounds", isCorrect: true },
+                    { text: "Shelter inside the hermit crab's shell", isCorrect: false },
+                    { text: "A steady source of calcium for its body", isCorrect: false }
+                ]
+            },
+            {
+                icon: '🛡️',
+                question: "If a predator approaches, whose contribution is most critical for the crab's survival?",
+                options: [
+                    { text: "The crab's powerful claws", isCorrect: false },
+                    { text: "The anemone's nematocysts (stinging cells)", isCorrect: true },
+                    { text: "The empty shell's weight", isCorrect: false }
+                ]
+            },
+            {
+                icon: '🌊',
+                question: "If the anemone stayed fixed on a single rock, what essential need would be reduced?",
+                options: [
+                    { text: "The need for fresh water", isCorrect: false },
+                    { text: "The opportunity to find new food", isCorrect: true },
+                    { text: "The ability to reproduce", isCorrect: false }
+                ]
+            },
+            {
+                icon: '🤝',
+                question: "What is the biological classification for this relationship where both species benefit?",
+                options: [
+                    { text: "Commensalism (one benefits, one is unaffected)", isCorrect: false },
+                    { text: "Parasitism (one benefits, one is harmed)", isCorrect: false },
+                    { text: "Mutualism (both species benefit)", isCorrect: true }
+                ]
+            }
+        ];
+
+        // --- DOM Elements ---
+        const questionIcon = document.getElementById('question-icon');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const startButton = document.getElementById('start-button');
+        
+        // Function to shuffle an array (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        /**
+         * Loads the next question or ends the game.
+         */
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            answeredCorrectly = false;
+            feedbackMessage.textContent = '';
+            nextButton.classList.add('hidden');
+            startButton.classList.add('hidden');
+            document.querySelector('.game-card').classList.remove('glow');
+
+
+            if (currentQuestionIndex < quizData.length) {
+                const q = quizData[currentQuestionIndex];
+                
+                // Update Question UI
+                questionIcon.textContent = q.icon;
+                questionText.textContent = q.question;
+
+                // Shuffle options for better replayability
+                shuffleArray(q.options);
+                
+                // Populate Options
+                optionsContainer.innerHTML = '';
+                q.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = option.text;
+                    button.classList.add(
+                        'w-full', 'py-3', 'rounded-lg', 'font-semibold', 
+                        'bg-gray-600', 'hover:bg-gray-500', 'transition', 'duration-150', 
+                        'text-left', 'px-4', 'shadow-md'
+                    );
+                    button.onclick = () => checkAnswer(button, option.isCorrect);
+                    optionsContainer.appendChild(button);
+                });
+            } else {
+                // End of Quiz
+                endGame();
+            }
+        }
+
+        /**
+         * Checks the user's selected answer.
+         * @param {HTMLElement} selectedButton - The button the user clicked.
+         * @param {boolean} isCorrect - Whether the selected option is the correct answer.
+         */
+        function checkAnswer(selectedButton, isCorrect) {
+            if (answeredCorrectly) return; // Prevent clicking after selection
+
+            answeredCorrectly = true;
+            nextButton.classList.remove('hidden');
+
+            const allButtons = optionsContainer.querySelectorAll('button');
+            allButtons.forEach(button => {
+                button.disabled = true; // Disable all buttons
+                // Highlight the correct answer regardless of user choice
+                const optionData = quizData[currentQuestionIndex].options.find(opt => opt.text === button.textContent);
+                if (optionData && optionData.isCorrect) {
+                    button.classList.add('correct-answer');
+                    button.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                }
+            });
+
+            if (isCorrect) {
+                score++;
+                feedbackMessage.textContent = "✅ Correct! Great match.";
+                feedbackMessage.classList.add('text-green-400');
+                feedbackMessage.classList.remove('text-red-400');
+            } else {
+                selectedButton.classList.add('incorrect-answer');
+                feedbackMessage.textContent = "❌ Incorrect. Try the next one!";
+                feedbackMessage.classList.add('text-red-400');
+                feedbackMessage.classList.remove('text-green-400');
+            }
+        }
+
+        /**
+         * Displays the final score and resets the game state.
+         */
+        function endGame() {
+            questionIcon.textContent = '🏆';
+            questionText.textContent = 'Game Over!';
+            optionsContainer.innerHTML = ''; // Clear options
+            feedbackMessage.textContent = `You scored ${score} out of ${quizData.length} matches!`;
+            feedbackMessage.classList.add('text-orange-400', 'text-2xl');
+            
+            nextButton.textContent = 'Play Again';
+            nextButton.onclick = initializeGame;
+            nextButton.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+            nextButton.style.backgroundColor = '#f97316';
+            document.querySelector('.game-card').classList.add('glow');
+        }
+
+        /**
+         * Initializes the game for the first time or for a restart.
+         */
+        function initializeGame() {
+            currentQuestionIndex = -1;
+            score = 0;
+            feedbackMessage.textContent = 'Ready to start!';
+            feedbackMessage.classList.remove('text-green-400', 'text-red-400', 'text-orange-400', 'text-2xl');
+            nextButton.textContent = 'Next Question';
+            nextButton.onclick = loadNextQuestion;
+            nextButton.classList.add('hidden');
+            startButton.classList.remove('hidden');
+            startButton.classList.add('glow');
+
+            questionIcon.textContent = '🦀 🤝 🐙';
+            questionText.textContent = 'Match the role to the organism.';
+            optionsContainer.innerHTML = '';
+        }
+
+        window.onload = initializeGame;
+    </script>
+</body>
+</html>
